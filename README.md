@@ -1,4 +1,4 @@
-RoboCupTestPro
+RoboCupTestPro Repository
 ==============
 This Program is made for RoboCupRobot-Made in Nagasaki-University.  
 So may be it  can not work for other robot.  
