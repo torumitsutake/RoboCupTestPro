@@ -2,7 +2,8 @@
  * Sitoa_template.h
  *
  *  Created on: 2014/10/03
- *      Author: Sitoa
+ *  Author: Sitoa
+ *  Copyright © 2014 Sitoa All Rights Reserved.
  */
 
 #ifndef SITOA_TEMPLATE_H_
