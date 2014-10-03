@@ -1,10 +1,10 @@
 /*
  ============================================================================
  Name        : Main.c
- Author      : Toru Mitsutake
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Author      : Toru Mitsutake-Sitoa
+ Version     : 1.0.0
+ Copyright   : Copyright © 2014 Sitoa All Rights Reserved.
+ Description : RoboCupRobot.Program
  ============================================================================
  */
 
