@@ -1,0 +1,379 @@
+/******************** (C) COPYRIGHT 2009-2011 JAPAN ROBOTECH ***************
+* File Name          : main.c
+* Author             : JAPAN ROBOTECH - I/O System Team
+* Version            : V1.0
+* Date               : 04/11/2011
+* Description        : サンプルメインソース
+* Board              : JES-7021
+****************************************************************************/
+
+#include "includes.h"
+#include "prottype.h"
+
+/* Private function prototypes --------------------------------------------*/
+static void led_flow_timer(void);
+static void func_timer(void);
+void wait_ms(int timer);
+void mae(void);
+void usiro(void);
+void tomaru(void);
+void migikaiten(void);
+void hidarikaiten(void);
+void hidaridome(void);
+void migidome(void);
+void forward_right(void);
+void forward_left(void);
+/* Private variables ------------------------------------------------------*/
+int				LedFlowCounter;
+unsigned int	LedPattern;
+int				timercount;
+
+/***************************************************************************
+ * Function Name	: main
+ * Parameters		: none
+ *
+ * Return			: none
+ *
+ * Description		: main
+ *
+ ***************************************************************************/
+int main(void)
+{
+	int i,touch1,touch2,ir1,ir2,distance,extAnalog;
+
+	// ドライバ初期化処理
+	App_Init();
+
+	// LEDを流すタイマー処理を登録
+	Timer_Func_Regist(led_flow_timer);
+
+	// STARTボタンが押されるまでまつ
+	while(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_2));
+
+	// LEDを流すタイマー処理をキャンセル
+	Timer_Func_Cancel(led_flow_timer);
+
+	// LED を全て消す
+	for (i=LED_1; i<=LED_10; i++)
+	{
+		LED_output(i, LED_OFF);
+	}
+
+
+	// ユーザプログラムのタイマー処理登録
+	// 1ms毎にfunc_timer()が呼び出される
+	Timer_Func_Regist(func_timer);
+
+
+//////////////////////////////////////////////////////////////////////
+// ここからプログラム領域                                           //
+//      ★ 起動時１回のみ実行するプログラムはここに書く             //
+//      ★ メインで処理するプログラムはwhileのmainループに書く      //
+//      ★ 1ms毎に実行するプログラムがあればfunc_timer()に書く      //
+//////////////////////////////////////////////////////////////////////
+
+
+// ★ 起動時１回のみ実行  領域  ↓↓↓
+
+
+
+	while(1)
+	{
+// ★ メインで処理  領域（mainループ）  ↓↓↓
+
+	//機体とポート類の接続は 左：小さい番号←→大きい番号：右
+	GetGeneral_port(PORT_05, (int *)&touch1);			// タッチセンサ左
+	GetGeneral_port(PORT_06, (int *)&touch2);			// タッチセンサ右
+	GetGeneral_port(PORT_07, (int *)&ir1);				// IRセンサ左
+	GetGeneral_port(PORT_08, (int *)&ir2);				// IRセンサ右
+	GetGeneral_port(PORT_09, (int *)&distance);			// 測距センサ
+
+//センサーに何か感知した場合は以下の処理を開始
+			if (ir1 <= 2048)//左に感知した場合
+			{
+				if (ir2 <= 2048)//両方に感知した場合
+				{
+					mae();	//前進
+
+				}else{//左のみ感知した場合
+					forward_left();
+
+					}
+			}else
+			if (ir2 <= 2048)//右のみ感知した場合
+						{
+
+								forward_right();
+
+
+						}
+//センサーに反応しなかったとき
+			if(ir2 >= 2048 && ir1 >= 2048){
+
+				migikaiten();
+			}
+
+
+
+
+
+
+
+	}
+
+
+    //  ▼▼▼ メインループから呼び出される各処理関数 ▼▼▼
+	#ifdef _FUNC_EXT_GPSM
+		GPS_Driver_Proc();					// GPS制御処理
+	#endif
+    //  ▲▲▲ メインループから呼び出される各処理関数 ▲▲▲
+
+
+	App_End();      //Driver start
+
+return 0;
+
+}
+
+
+/***************************************************************************
+* Function Name  : wait_ms
+* Description    : 指定時間のウエイト
+* Input          : timer=待ち時間（ms）
+* Output         : None
+* Return         : None
+****************************************************************************/
+void wait_ms(int timer)
+{
+	timercount=0;
+	while(timercount <= timer);
+}
+
+/***************************************************************************
+* Function Name  : D_func_Timer
+* Description    : 1msタイマーでの処理
+* Input          : None
+* Output         : None
+* Return         : None
+****************************************************************************/
+static void func_timer(void)
+{
+// ★ 1ms毎に実行  領域  ↓↓↓
+
+	timercount++;
+
+}
+void mae(void){
+	motor_duty(MOTOR_1, 100);// モータのPWM設定
+	motor_duty(MOTOR_2,100);
+	motor_move(MOTOR_1, MODE_CW);	// モータ正転
+	motor_move(MOTOR_2, MODE_CW);	// モータ正転
+}
+
+void forward_right(){
+	motor_duty(MOTOR_2,100);
+	motor_duty(MOTOR_1,30);
+	motor_move(MOTOR_1,MODE_CW);
+	motor_move(MOTOR_2,MODE_CW);
+}
+
+void forward_left(){
+	motor_duty(MOTOR_1,100);
+	motor_duty(MOTOR_2,30);
+	motor_move(MOTOR_1,MODE_CW);
+	motor_move(MOTOR_2,MODE_CW);
+
+}
+
+void tomaru(void){
+     	 	 	 		motor_move(MOTOR_1, MODE_STOP);	// モータ停止
+						motor_move(MOTOR_2, MODE_STOP);	// モータ停止
+}
+
+void usiro(void){
+	motor_duty(MOTOR_1, 30);		// モータのPWM設定
+	motor_duty(MOTOR_2,30);
+							motor_move(MOTOR_1, MODE_CCW);	// モータ反転
+							motor_move(MOTOR_2, MODE_CCW);	// モータ反転
+}
+
+void migikaiten(void){
+	motor_duty(MOTOR_1, 70);		// モータのPWM設定
+	motor_duty(MOTOR_2,70);
+							motor_move(MOTOR_1, MODE_CCW);	// モータ反転
+							motor_move(MOTOR_2, MODE_CW);	// モータ正転
+}
+void hidarikaiten(void){
+
+	motor_duty(MOTOR_1, 70);		// モータのPWM設定
+	motor_duty(MOTOR_2,70);
+							motor_move(MOTOR_1, MODE_CW);	// モータ反転
+							motor_move(MOTOR_2, MODE_CCW);	// モータ正転
+	
+}
+/////////////////////////////////////////////////////////////////////////////////
+// ●プログラムサンプル
+//
+// USBシリアル出力
+//		xprintf("出力文字列 %s",str)					// 使用可能フォーマット指定子  %d %s %c %u %b %X
+//
+//
+// LED 点灯・消灯
+//		LED_output(LED_1, LED_ON);						// LED1 点灯     (ON)
+//		LED_output(LED_2, LED_OFF);						// LED2 消灯     (OFF)
+//		LED_output(LED_3, LED_BLINK_HI);				// LED3 高速点滅 (HI)
+//		LED_output(LED_4, LED_BLINK_HI);				// LED4 高速点滅 (HI)
+//		LED_output(LED_5, LED_BLINK_MID);				// LED5 中速点滅 (MID)
+//		LED_output(LED_6, LED_BLINK_MID);				// LED6 中速点滅 (MID)
+//		LED_output(LED_7, LED_BLINK_LO);				// LED7 低速点滅 (LO)
+//		LED_output(LED_8, LED_BLINK_LO);				// LED8 低速点滅 (LO)
+//
+// LED でレベル表示
+//		LED_LevelMeter(30, 70);							// 70を最大値とし30のレベルをLEDの表示個数で表す
+//
+//
+//
+// 拡張コネクタ・ディジタル出力
+//	・ハードウェア設定がOutputポートの場合
+//		SetGeneral_port(PORT_01, 0);					// PORT_01(CN01)にLow 出力
+//		SetGeneral_port(PORT_01, 1);					// PORT_01(CN01)にHigh出力
+//
+//	・ハードウェア設定がPWMポートの場合
+//		SetGeneral_port(PORT_01, 50);					// PORT_01(CN01)に50のPWMデータを出力
+//
+//	・ハードウェア設定がHARD SERVOポートの場合
+//		SetGeneral_port(PORT_01, 150);					// PORT_01(CN01)に150のデータを出力(1～250)
+//
+//	・ハードウェア設定がSOFT SERVOポートの場合
+//		SetGeneral_port(PORT_03, 10);					// PORT_03(CN03)に10のデータを出力(1～25)
+//
+//	・ハードウェア設定がENCODERポートの場合
+//		SetGeneral_port(PORT_01, 0);					// PORT_01(CN01)に0のエンコーダー値を設定
+//
+//	・ハードウェア設定がBUZZERポートの場合
+//		SetGeneral_port(PORT_17, 25);					// ラ(440KHz)の音階をブザーに出力
+//
+// 拡張コネクタ・ディジタル入力
+//	・ハードウェア設定がInputポートの場合
+//		GetGeneral_port(PORT_01, (int *)&data);			// dataに入力データ(1/0)が入る
+//
+//	・ハードウェア設定がADCポートの場合
+//		GetGeneral_port(PORT_01, (int *)&data);			// dataにADC入力データ(0～4096)が入る
+//
+//	・ハードウェア設定がHARD/SOFT SERVOポートの場合
+//		GetGeneral_port(PORT_01, (int *)&data);			// dataにサーボに設定している値が入る
+//
+//	・ハードウェア設定がENCODERポートの場合
+//		GetGeneral_port(PORT_01, (int *)&data);			// dataにエンコーダーの値が入る
+//
+//	・ハードウェア設定がBUZZERポートの場合
+//		GetGeneral_port(PORT_01, (int *)&data);			// dataに現在設定している音階の値が入る
+//
+//
+//
+// モータ制御
+//		motor_move(MOTOR_2, MODE_CW)					// ２番のモーターを正回転に設定
+//		motor_duty(MOTOR_2, 50);						// ２番のモーターのPWM割合を５０％にする。
+//
+//
+//
+// MMC書き込み/読み込み
+//		f_open(&file_obj, "sample.txt", FA_CREATE_ALWAYS | FA_WRITE);
+//														// sample.txtを新規作成
+//		f_write(&file_obj, (char *)wdata, s1, &s2);		// wdataの内容をs1サイズ書き込む（書き込んだサイズがs2に入る）
+//		f_read(&file_obj, buff, s1, &fsize);			// buffにs1サイズ分を読み込む（読み込んだサイズがfsizeに入る）
+//		f_close(&file_obj);								// ファイルクローズ
+//
+//
+//
+// Rs232C送受信（オプション）
+//		UART_xputc(dispbuff);							// disobuffの文字列を送信（終端NULL）
+//		UART_SendByte(0x13)								// 1Byte送信
+//		UART_RecvByte(unsigned char *code)				// 1Byte受信
+//
+//
+//
+// GPS受信（オプション）
+//		data = GPS_Latitude();							// 緯度 x 10000
+//		gpsd = GPS_latitude_hemisphere_indicator();		// 'N' = North, 'S' = South
+//		data = GPS_Longitude();							// 経度 x 10000
+//		gpsd = GPS_longitude_hemisphere_indicator();	// 'E' = East,  'W' = West
+//		count = GPS_number_of_satellites();				// 捕捉衛星数
+//		hour = GPS_hour()								// 標準時の時を取得する
+//		min = GPS_minute()								// 標準時の分を取得する
+//		sec = GPS_second();								// 標準時の秒を取得する
+//
+//
+//
+// ZigBee制御（オプション）
+//		Zigbee_ext_send(DATA_SEND_NO_CHECK, "123", 3);
+//														// 送信チェックをせずに"123"を送信
+//		Zigbee_ext_recv(buff, (int *)&len, (unsigned char *)&MsgID)
+//														// buffに受信する。lenに文字列長が入る。
+//
+//
+// EEPRO制御（オプション）
+//		I2C_EE_BufferWrite(message, 0x0001, 10);		// EEPROMの0x0001番地よりmessageのバッファ10バイトを書き込む
+//		I2C_EE_BufferRead(message, 0x0001, 10);			// EEPROMの0x0001番地からmessageのバッファ10バイトを読み込む
+//
+//
+//
+// デジタルコンパス(Compuss)読み込み（オプション）
+//		I2C_DC_Read((int *)&data);						//dataにコンパスの数値を読み込む(0～3599)
+//
+//
+//
+// I2Cモータ制御（オプション）
+//		I2C_motor_move(1,-100);							// モーター番号１のI2Cモーターを逆回転で１００％の出力にする
+//		I2C_motor_move(2,70);							// モーター番号２のI2Cモーターを正回転で７０％の出力にする
+//		I2C_motor_Get_Stats(1, (char *)&data);			// モーター番号１のエラーステータスを読み取る
+//		I2C_motor_Clear_Stats(1);						// モーター番号１のエラーステータスを消去する
+//
+//
+/////////////////////////////////////////////////////////////////////////////////
+
+/***************************************************************************
+* Function Name  : led_flow_timer
+* Description    : 起動時にスタートが押されるまでLEDを流す
+* Input          : None
+* Output         : None
+* Return         : None
+****************************************************************************/
+static void led_flow_timer(void)
+{
+	int i;
+
+	LedFlowCounter++;
+	if (LedFlowCounter < 150)	return;
+	LedFlowCounter=0;
+
+	for (i=LED_1; i<=LED_10; i++)
+	{
+		LED_output(i, LED_OFF);
+	}
+	// LED点灯
+	LED_output(9-(LedPattern % 10), LED_ON);
+	LedPattern++;
+}
+
+#ifdef USE_FULL_ASSERT
+/*******************************************************************************
+* Function Name  : assert_failed
+* Description    : Reports the name of the source file and the source line number
+*                  where the assert_param error has occurred.
+* Input          : - file: pointer to the source file name
+*                  - line: assert_param error line source number
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void assert_failed(uint8_t* file, uint32_t line)
+{
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+
+  /* Infinite loop */
+  while (1)
+  {}
+}
+#endif
+
